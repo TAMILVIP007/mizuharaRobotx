@@ -9,10 +9,7 @@ from telegram.ext import CallbackContext, run_async
 @run_async
 def totranslate(update: Update, context: CallbackContext):
     msg = update.effective_message
-    problem_lang_code = []
-    for key in LANGUAGES:
-        if "-" in key:
-            problem_lang_code.append(key)
+    problem_lang_code = [key for key in LANGUAGES if "-" in key]
     try:
         if msg.reply_to_message:
             args = update.effective_message.text.split(None, 1)

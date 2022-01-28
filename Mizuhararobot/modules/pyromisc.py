@@ -73,13 +73,10 @@ async def sed(c: Client, m: Message):
     exp = regex.split(r'(?<![^\\]\\)/', m.text)
     pattern = exp[1]
     replace_with = exp[2].replace(r'\/', '/')
-    flags = exp[3] if len(exp) > 3 else ''
-
-    count = 1
     rflags = 0
 
-    if 'g' in flags:
-        count = 0
+    flags = exp[3] if len(exp) > 3 else ''
+    count = 0 if 'g' in flags else 1
     if 'i' in flags and 's' in flags:
         rflags = regex.I | regex.S
     elif 'i' in flags:
@@ -183,9 +180,9 @@ async def ip(c: Client, m: Message):
 
     fixed_lookup = {}
 
+    special = {"lat": "Latitude", "lon": "Longitude",
+               "isp": "ISP", "as": "AS", "asname": "AS name"}
     for key, value in lookup_json.items():
-        special = {"lat": "Latitude", "lon": "Longitude",
-                   "isp": "ISP", "as": "AS", "asname": "AS name"}
         if key in special:
             fixed_lookup[special[key]] = str(value)
             continue
@@ -198,9 +195,9 @@ async def ip(c: Client, m: Message):
 
         fixed_lookup[key] = str(value)
 
-    text = ""
+    text = "".join(
+        f"**{key}:** `{value}`\n" for key, value in fixed_lookup.items()
+    )
 
-    for key, value in fixed_lookup.items():
-        text = text + f"**{key}:** `{value}`\n"
 
     await m.reply_text(text, parse_mode="markdown")

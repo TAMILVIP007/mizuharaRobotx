@@ -18,7 +18,7 @@ url = 'https://graphql.anilist.co'
 def shorten(description, info='anilist.co'):
     ms_g = ""
     if len(description) > 700:
-        description = description[0:500] + '....'
+        description = description[:500] + '....'
         ms_g += f"\n**Description**: __{description}__[Read More]({info})"
     else:
         ms_g += f"\n**Description**: __{description}__"
@@ -193,9 +193,13 @@ async def anime_search(c: Client, m: Message):
     else:
         search = search[1]
     variables = {'search': search}
-    json = requests.post(url, json={'query': anime_query, 'variables': variables}).json()[
-        'data'].get('Media', None)
-    if json:
+    if (
+        json := requests.post(
+            url, json={'query': anime_query, 'variables': variables}
+        )
+        .json()['data']
+        .get('Media', None)
+    ):
         msg = f"**{json['title']['romaji']}**(`{json['title']['native']}`)\n**Type**: {json['format']}\n**Status**: {json['status']}\n**Episodes**: {json.get('episodes', 'N/A')}\n**Duration**: {json.get('duration', 'N/A')} Per Ep.\n**Score**: {json['averageScore']}\n**Genres**: `"
         for x in json['genres']:
             msg += f"{x}, "
@@ -242,15 +246,18 @@ async def character_search(c: Client, m: Message):
         return
     search = search[1]
     variables = {'query': search}
-    json = requests.post(url, json={'query': character_query, 'variables': variables}).json()[
-        'data'].get('Character', None)
-    if json:
+    if (
+        json := requests.post(
+            url, json={'query': character_query, 'variables': variables}
+        )
+        .json()['data']
+        .get('Character', None)
+    ):
         ms_g = f"**{json.get('name').get('full')}**(`{json.get('name').get('native')}`)\n"
         description = f"{json['description']}"
         site_url = json.get('siteUrl')
         ms_g += shorten(description, site_url)
-        image = json.get('image', None)
-        if image:
+        if image := json.get('image', None):
             image = image.get('large')
             await m.reply_photo(image, caption=ms_g)
         else:
@@ -330,9 +337,7 @@ async def site_search(client: Client, m: Message, site: str):
         search_url = f"https://animekaizoku.com/?s={search_query}"
         html_text = requests.get(search_url).text
         soup = bs4.BeautifulSoup(html_text, "html.parser")
-        search_result = soup.find_all("h2", {'class': "post-title"})
-
-        if search_result:
+        if search_result := soup.find_all("h2", {'class': "post-title"}):
             result = f"<b>Search results for</b> <code>{html.escape(search_query)}</code> <b>on</b> <code>AnimeKaizoku</code>: \n"
             for entry in search_result:
                 post_link = entry.a['href']
@@ -383,13 +388,29 @@ async def site_search(client: Client, m: Message, site: str):
         await m.reply_text("Give something to search")
         return
 
-    if site == "kaizoku":
+    if site == "ganime":
+        search_url = f"https://gogoanime.so//search.html?keyword={search_query}"
+        html_text = requests.get(search_url).text
+        soup = bs4.BeautifulSoup(html_text, "html.parser")
+        search_result = soup.find_all("h2", {'class': "title"})
+
+        result = f"<b>Search results for</b> <code>{html.escape(search_query)}</code> <b>on</b> <code>gogoanime</code>: \n"
+        for entry in search_result:
+
+            if entry.text.strip() == "Nothing Found":
+                result = f"<b>No result found for</b> <code>{html.escape(search_query)}</code> <b>on</b> <code>gogoanime</code>"
+                more_results = False
+                break
+
+            post_link = entry.a['href']
+            post_name = html.escape(entry.text.strip())
+            result += f"• <a href='{post_link}'>{post_name}</a>\n"
+
+    elif site == "kaizoku":
         search_url = f"https://animekaizoku.com/?s={search_query}"
         html_text = requests.get(search_url).text
         soup = bs4.BeautifulSoup(html_text, "html.parser")
-        search_result = soup.find_all("h2", {'class': "post-title"})
-
-        if search_result:
+        if search_result := soup.find_all("h2", {'class': "post-title"}):
             result = f"<b>Search results for</b> <code>{html.escape(search_query)}</code> <b>on</b> <code>AnimeKaizoku</code>: \n"
             for entry in search_result:
                 post_link = entry.a['href']
@@ -410,24 +431,6 @@ async def site_search(client: Client, m: Message, site: str):
 
             if entry.text.strip() == "Nothing Found":
                 result = f"<b>No result found for</b> <code>{html.escape(search_query)}</code> <b>on</b> <code>AnimeKayo</code>"
-                more_results = False
-                break
-
-            post_link = entry.a['href']
-            post_name = html.escape(entry.text.strip())
-            result += f"• <a href='{post_link}'>{post_name}</a>\n"
-
-    elif site == "ganime":
-        search_url = f"https://gogoanime.so//search.html?keyword={search_query}"
-        html_text = requests.get(search_url).text
-        soup = bs4.BeautifulSoup(html_text, "html.parser")
-        search_result = soup.find_all("h2", {'class': "title"})
-
-        result = f"<b>Search results for</b> <code>{html.escape(search_query)}</code> <b>on</b> <code>gogoanime</code>: \n"
-        for entry in search_result:
-
-            if entry.text.strip() == "Nothing Found":
-                result = f"<b>No result found for</b> <code>{html.escape(search_query)}</code> <b>on</b> <code>gogoanime</code>"
                 more_results = False
                 break
 
